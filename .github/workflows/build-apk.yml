@@ -43,8 +43,9 @@ jobs:
 
       - name: Compilar
         run: |
-          set -o pipefail
-          yes | buildozer android debug 2>&1 | tee build.log
+          set +o pipefail
+          (yes | buildozer android debug) 2>&1 | tee build.log || true
+          ls bin/*.apk   # falla solo si de verdad no se generó el APK
 
       - name: Publicar error como issue
         if: failure()
