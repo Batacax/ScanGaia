@@ -1,0 +1,1691 @@
+#:import IC core.icons.IC
+#:import hexc kivy.utils.get_color_from_hex
+#:import IS_ANDROID core.platform_utils.IS_ANDROID
+#:import Window kivy.core.window.Window
+#:set IF 'assets/MaterialIcons-Regular.ttf'
+#:set D_BG hexc('#070B12')
+#:set D_CARD hexc('#0F1520')
+#:set D_LINE hexc('#232A38')
+#:set D_TXT hexc('#F5F7FB')
+#:set D_MUT hexc('#8A93A6')
+#:set L_BG hexc('#F5F8FC')
+#:set L_CARD hexc('#FFFFFF')
+#:set L_LINE hexc('#E2E8F0')
+#:set L_TXT hexc('#0F172A')
+#:set L_MUT hexc('#64748B')
+#:set BLUE hexc('#1A6FF0')
+#:set BLUE_SOFT hexc('#E8F1FE')
+#:set RED hexc('#E5484D')
+
+# ============================================================== básicos
+<Lbl@Label>:
+    color: L_TXT
+    text_size: self.width, None
+    size_hint_y: None
+    height: self.texture_size[1]
+    halign: 'left'
+    valign: 'middle'
+    markup: True
+    font_size: sp(14)
+
+<DLbl@Lbl>:
+    color: D_TXT
+
+<Icon>:
+    font_name: IF
+    color: BLUE
+    font_size: sp(24)
+    size_hint: None, None
+    size: dp(28), dp(28)
+    halign: 'center'
+    valign: 'middle'
+
+<IconButton>:
+    size: dp(44), dp(44)
+    opacity: 0.55 if self.state == 'down' else (0.35 if self.disabled else 1)
+    canvas.before:
+        Color:
+            rgba: self.bg_color
+        Ellipse:
+            pos: self.pos
+            size: self.size
+
+<RoundBox>:
+    canvas.before:
+        Color:
+            rgba: self.shadow_color
+        RoundedRectangle:
+            pos: self.x, self.y - dp(3)
+            size: self.width, self.height
+            radius: [self.radius]
+        Color:
+            rgba: self.border_color
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [self.radius]
+        Color:
+            rgba: self.bg_color
+        RoundedRectangle:
+            pos: self.x + self.border_width, self.y + self.border_width
+            size: self.width - 2 * self.border_width, self.height - 2 * self.border_width
+            radius: [max(0, self.radius - self.border_width)]
+            texture: self.texture
+
+<PressBox>:
+    opacity: 0.7 if self.state == 'down' else 1
+
+<GradButton>:
+    grad: app.grad
+    size_hint_y: None
+    height: dp(56)
+    font_size: sp(16)
+    color: self.fg
+    markup: True
+    opacity: 0.45 if self.disabled else 1
+    canvas.before:
+        Color:
+            rgba: 0.1, 0.45, 1, (0.14 if self.glow and not self.disabled else 0)
+        RoundedRectangle:
+            pos: self.x - dp(6), self.y - dp(8)
+            size: self.width + dp(12), self.height + dp(12)
+            radius: [self.radius + dp(6)]
+        Color:
+            rgba: 0.1, 0.45, 1, (0.16 if self.glow and not self.disabled else 0)
+        RoundedRectangle:
+            pos: self.x - dp(2), self.y - dp(4)
+            size: self.width + dp(4), self.height + dp(5)
+            radius: [self.radius + dp(2)]
+        Color:
+            rgba: (1, 1, 1, 1) if self.state == 'normal' else (.82, .82, .82, 1)
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [self.radius]
+            texture: self.grad
+
+<OutlineBtn>:
+    size_hint_y: None
+    height: dp(56)
+    font_size: sp(16)
+    markup: True
+    color: self.fg
+    opacity: 0.45 if self.disabled else 1
+    canvas.before:
+        Color:
+            rgba: self.line
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [self.radius]
+        Color:
+            rgba: self.bg if self.state == 'normal' else self.line
+        RoundedRectangle:
+            pos: self.x + 1.2, self.y + 1.2
+            size: self.width - 2.4, self.height - 2.4
+            radius: [self.radius - 1]
+
+<Field>:
+    size_hint_y: None
+    height: dp(54)
+    multiline: False
+    write_tab: False
+    padding: (dp(46) if self.icon else dp(18)), (self.height - self.line_height) / 2.0, dp(16), 0
+    background_normal: ''
+    background_active: ''
+    background_color: 0, 0, 0, 0
+    foreground_color: D_TXT if self.dark else L_TXT
+    hint_text_color: D_MUT if self.dark else L_MUT
+    cursor_color: BLUE
+    selection_color: 0.1, 0.45, 1, 0.3
+    font_size: sp(15)
+    canvas.before:
+        Color:
+            rgba: BLUE if self.focus else (D_LINE if self.dark else L_LINE)
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [self.radius]
+        Color:
+            rgba: D_CARD if self.dark else L_CARD
+        RoundedRectangle:
+            pos: self.x + dp(1.5), self.y + dp(1.5)
+            size: self.width - dp(3), self.height - dp(3)
+            radius: [self.radius - dp(1.5)]
+        Color:
+            rgba: (D_MUT if self.dark else L_MUT) if self.icon_tex else (0, 0, 0, 0)
+        Rectangle:
+            texture: self.icon_tex
+            size: self.icon_tex.size if self.icon_tex else (0, 0)
+            pos: self.x + dp(15), self.center_y - (self.icon_tex.height / 2.0 if self.icon_tex else 0)
+
+<Chip>:
+    size_hint: None, None
+    height: dp(36)
+    width: self.texture_size[0] + dp(30)
+    font_size: sp(13)
+    markup: True
+    color: (1, 1, 1, 1) if self.state == 'down' else self.fg
+    canvas.before:
+        Color:
+            rgba: BLUE if self.state == 'down' else self.line
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [self.height / 2.0]
+        Color:
+            rgba: BLUE if self.state == 'down' else self.bg
+        RoundedRectangle:
+            pos: self.x + 1, self.y + 1
+            size: self.width - 2, self.height - 2
+            radius: [self.height / 2.0 - 1]
+
+<TopBar@BoxLayout>:
+    size_hint_y: None
+    height: dp(60)
+    padding: dp(6), dp(8), dp(12), dp(8)
+    spacing: dp(6)
+
+<SectionHeader>:
+    size_hint_y: None
+    height: dp(34)
+    Lbl:
+        text: '[b]%s[/b]' % root.title
+        font_size: sp(17)
+        size_hint_y: 1
+        text_size: self.size
+    Label:
+        text: root.action + ('  ›' if root.action else '')
+        color: BLUE
+        font_size: sp(13)
+        size_hint_x: None
+        width: self.texture_size[0] + dp(8)
+        on_touch_down: if self.collide_point(*args[1].pos) and root.action: root.dispatch('on_link')
+
+# ============================================================== navegación
+<NavItem>:
+    orientation: 'vertical'
+    padding: 0, dp(10), 0, dp(8)
+    Icon:
+        text: root.icon
+        color: BLUE if root.active else L_MUT
+        size_hint: 1, None
+        height: dp(26)
+        font_size: sp(24)
+    Label:
+        text: root.text
+        font_size: sp(11)
+        color: BLUE if root.active else L_MUT
+        size_hint_y: None
+        height: dp(18)
+
+<BottomNav>:
+    size_hint_y: None
+    height: dp(70)
+    canvas.before:
+        Color:
+            rgba: L_LINE
+        Rectangle:
+            pos: self.x, self.top - 1
+            size: self.width, 1
+        Color:
+            rgba: L_CARD
+        Rectangle:
+            pos: self.pos
+            size: self.width, self.height - 1
+    BoxLayout:
+        pos: root.pos
+        size: root.size
+        NavItem:
+            icon: IC['home']
+            text: 'Inicio'
+            active: root.active == 'home'
+            on_release: app.go_tab('home')
+        NavItem:
+            icon: IC['folder_open']
+            text: 'Documentos'
+            active: root.active == 'docs'
+            on_release: app.go_tab('docs')
+        BoxLayout:
+            orientation: 'vertical'
+            padding: 0, 0, 0, dp(8)
+            Widget:
+            Label:
+                text: 'Escanear'
+                font_size: sp(11)
+                color: BLUE
+                bold: True
+                size_hint_y: None
+                height: dp(18)
+        NavItem:
+            icon: IC['build']
+            text: 'Herramientas'
+            active: root.active == 'tools'
+            on_release: app.go_tab('tools')
+        NavItem:
+            icon: IC['person']
+            text: 'Perfil'
+            active: root.active == 'profile'
+            on_release: app.go_tab('profile')
+    ScanFab:
+        size: dp(60), dp(60)
+        pos: root.center_x - self.width / 2.0, root.top - dp(40)
+        on_release: app.start_scan()
+
+<ScanFab>:
+    canvas.before:
+        Color:
+            rgba: 0.1, 0.45, 1, 0.18
+        Ellipse:
+            pos: self.x - dp(5), self.y - dp(7)
+            size: self.width + dp(10), self.height + dp(10)
+        Color:
+            rgba: L_CARD
+        Ellipse:
+            pos: self.x - dp(3), self.y - dp(3)
+            size: self.width + dp(6), self.height + dp(6)
+        Color:
+            rgba: (1, 1, 1, 1) if self.state == 'normal' else (.8, .8, .8, 1)
+        Ellipse:
+            pos: self.pos
+            size: self.size
+            texture: app.grad
+    Icon:
+        text: IC['scan']
+        color: 1, 1, 1, 1
+        font_size: sp(28)
+        center: root.center
+
+# ============================================================== tarjetas
+<FeatureCard>:
+    orientation: 'vertical'
+    size_hint_y: None
+    height: dp(128)
+    padding: dp(16)
+    spacing: dp(6)
+    bg_color: D_CARD
+    border_color: D_LINE
+    radius: dp(22)
+    Icon:
+        text: root.icon
+        font_size: sp(24)
+    Widget:
+        size_hint_y: None
+        height: dp(2)
+    DLbl:
+        text: '[b]%s[/b]' % root.title
+        font_size: sp(14)
+    DLbl:
+        text: root.desc
+        color: D_MUT
+        font_size: sp(12)
+    Widget:
+
+<QuickAction>:
+    orientation: 'vertical'
+    padding: dp(4), dp(12), dp(4), dp(10)
+    spacing: dp(6)
+    radius: dp(18)
+    AnchorLayout:
+        size_hint_y: None
+        height: dp(38)
+        Icon:
+            text: root.icon
+            font_size: sp(20)
+            size: dp(38), dp(38)
+            canvas.before:
+                Color:
+                    rgba: BLUE_SOFT
+                Ellipse:
+                    pos: self.pos
+                    size: self.size
+    Label:
+        text: root.text
+        color: L_TXT
+        font_size: sp(11)
+        halign: 'center'
+        text_size: self.width, None
+
+<DocRow>:
+    size_hint_y: None
+    height: dp(78)
+    padding: dp(10)
+    spacing: dp(12)
+    radius: dp(16)
+    RoundBox:
+        size_hint_x: None
+        width: dp(46)
+        radius: dp(8)
+        bg_color: (1, 1, 1, 1) if root.thumb else BLUE_SOFT
+        border_color: L_LINE
+        Image:
+            source: root.thumb
+            fit_mode: 'cover'
+            nocache: True
+            opacity: 1 if root.thumb else 0
+    BoxLayout:
+        orientation: 'vertical'
+        Widget:
+        Lbl:
+            text: '[b]%s[/b]' % root.title
+            shorten: True
+            shorten_from: 'right'
+            font_size: sp(14)
+        Lbl:
+            text: root.subtitle
+            color: L_MUT
+            font_size: sp(12)
+        Widget:
+    IconButton:
+        text: IC['more']
+        color: L_MUT
+        size_hint: None, None
+        pos_hint: {'center_y': .5}
+        on_release: root.dispatch('on_more')
+
+<FolderCard>:
+    orientation: 'vertical'
+    size_hint: None, None
+    size: dp(132), dp(92)
+    padding: dp(12)
+    radius: dp(16)
+    Icon:
+        text: IC['folder']
+        color: hexc('#F5B400')
+    Widget:
+    Lbl:
+        text: '[b]%s[/b]' % root.title
+        shorten: True
+        font_size: sp(13)
+    Lbl:
+        text: root.subtitle
+        color: L_MUT
+        font_size: sp(11)
+
+<ToolRow>:
+    size_hint_y: None
+    height: dp(76)
+    padding: dp(14)
+    spacing: dp(14)
+    radius: dp(18)
+    Icon:
+        text: root.icon
+        size: dp(46), dp(46)
+        pos_hint: {'center_y': .5}
+        canvas.before:
+            Color:
+                rgba: BLUE_SOFT
+            RoundedRectangle:
+                pos: self.pos
+                size: self.size
+                radius: [dp(12)]
+    BoxLayout:
+        orientation: 'vertical'
+        Widget:
+        Lbl:
+            text: '[b]%s[/b]' % root.title
+            font_size: sp(15)
+        Lbl:
+            text: root.desc
+            color: L_MUT
+            font_size: sp(12)
+        Widget:
+    Icon:
+        text: IC['chevron_right']
+        color: L_MUT
+        pos_hint: {'center_y': .5}
+
+<PageThumb>:
+    orientation: 'vertical'
+    size_hint_y: None
+    height: dp(230)
+    padding: dp(8)
+    spacing: dp(4)
+    radius: dp(16)
+    Image:
+        texture: root.texture_img
+        fit_mode: 'contain'
+    BoxLayout:
+        size_hint_y: None
+        height: dp(40)
+        Label:
+            text: '[b]%d[/b]' % root.number
+            markup: True
+            color: L_TXT
+            font_size: sp(14)
+            size_hint_x: None
+            width: dp(30)
+        Widget:
+        IconButton:
+            text: IC['chevron_left']
+            color: L_MUT
+            disabled: root.number <= 1
+            size: dp(38), dp(38)
+            on_release: app.move_page(root.number - 1)
+        IconButton:
+            text: IC['edit']
+            color: BLUE
+            size: dp(38), dp(38)
+            font_size: sp(20)
+            on_release: app.edit_page(root.number - 1)
+        IconButton:
+            text: IC['delete']
+            color: RED
+            size: dp(38), dp(38)
+            font_size: sp(20)
+            on_release: app.delete_page(root.number - 1)
+
+<BarAction>:
+    orientation: 'vertical'
+    padding: 0, dp(6)
+    Icon:
+        text: root.icon
+        color: root.tint
+        size_hint: 1, None
+        height: dp(28)
+    Label:
+        text: root.text
+        color: root.label_color
+        font_size: sp(11)
+        size_hint_y: None
+        height: dp(18)
+
+# ============================================================== bienvenida (oscuro)
+<WelcomeScreen>:
+    canvas.before:
+        Color:
+            rgba: D_BG
+        Rectangle:
+            pos: self.pos
+            size: self.size
+    ScrollView:
+        do_scroll_x: False
+        BoxLayout:
+            orientation: 'vertical'
+            padding: dp(26), dp(44), dp(26), dp(26)
+            spacing: dp(14)
+            size_hint_y: None
+            height: max(self.minimum_height, root.height)
+            DLbl:
+                text: '[b]Tus papeles,[/b]\n[b][color=2f7cf6]digitales en\nsegundos.[/color][/b]'
+                font_size: sp(38)
+                line_height: 1.02
+            DLbl:
+                text: 'Fotografía, recorta, mejora y guarda tus documentos como PDF.'
+                color: D_MUT
+                font_size: sp(16)
+                line_height: 1.3
+            Widget:
+                size_hint_y: None
+                height: dp(18)
+            GridLayout:
+                cols: 2
+                spacing: dp(12)
+                size_hint_y: None
+                height: self.minimum_height
+                FeatureCard:
+                    icon: IC['camera']
+                    title: 'Escaneo inteligente'
+                    desc: 'Detecta bordes y endereza la hoja'
+                FeatureCard:
+                    icon: IC['description']
+                    title: 'PDF real'
+                    desc: 'Varias páginas en un solo archivo'
+                FeatureCard:
+                    icon: IC['subject']
+                    title: 'Reconoce texto'
+                    desc: 'OCR en español e inglés'
+                FeatureCard:
+                    icon: IC['lock']
+                    title: 'Privado'
+                    desc: 'Solo tú ves tus documentos'
+            Widget:
+                size_hint_y: 1
+                height: dp(30)
+            GradButton:
+                text: 'Crear cuenta gratis'
+                fg: hexc('#0B1220')
+                on_release: app.go('register')
+            OutlineBtn:
+                text: 'Ya tengo cuenta'
+                fg: D_TXT
+                line: D_LINE
+                bg: D_BG
+                on_release: app.go('login')
+
+<AuthScreen>:
+    canvas.before:
+        Color:
+            rgba: D_BG
+        Rectangle:
+            pos: self.pos
+            size: self.size
+    ScrollView:
+        do_scroll_x: False
+        BoxLayout:
+            orientation: 'vertical'
+            padding: dp(22), dp(10), dp(22), dp(26)
+            spacing: dp(14)
+            size_hint_y: None
+            height: max(self.minimum_height, root.height)
+            BoxLayout:
+                size_hint_y: None
+                height: dp(52)
+                IconButton:
+                    text: IC['back']
+                    color: D_TXT
+                    on_release: app.back()
+                Widget:
+            DLbl:
+                text: '[b]%s[/b]' % ('Crea tu cuenta' if root.mode == 'register' else 'Bienvenido de nuevo')
+                font_size: sp(30)
+            DLbl:
+                text: 'Tus documentos quedan guardados solo en este teléfono.' if root.mode == 'register' else 'Entra para ver tus documentos.'
+                color: D_MUT
+                font_size: sp(15)
+            Widget:
+                size_hint_y: None
+                height: dp(10)
+            Field:
+                id: name
+                dark: True
+                icon: IC['person']
+                hint_text: 'Nombre'
+                opacity: 1 if root.mode == 'register' else 0
+                disabled: root.mode != 'register'
+                height: dp(54) if root.mode == 'register' else 0
+                on_text_validate: email.focus = True
+            Field:
+                id: email
+                dark: True
+                icon: IC['description']
+                hint_text: 'Correo electrónico'
+                input_type: 'mail'
+                on_text_validate: pw.focus = True
+            Field:
+                id: pw
+                dark: True
+                icon: IC['lock']
+                hint_text: 'Contraseña'
+                password: True
+                on_text_validate: (pw2.__setattr__('focus', True)) if root.mode == 'register' else root.submit()
+            Field:
+                id: pw2
+                dark: True
+                icon: IC['lock']
+                hint_text: 'Repite la contraseña'
+                password: True
+                opacity: 1 if root.mode == 'register' else 0
+                disabled: root.mode != 'register'
+                height: dp(54) if root.mode == 'register' else 0
+                on_text_validate: root.submit()
+            DLbl:
+                text: root.error
+                color: RED
+                font_size: sp(13)
+            Widget:
+            GradButton:
+                text: 'Crear cuenta' if root.mode == 'register' else 'Entrar'
+                fg: hexc('#0B1220')
+                on_release: root.submit()
+            DLbl:
+                text: ('¿Ya tienes cuenta? [color=2f7cf6][b]Inicia sesión[/b][/color]' if root.mode == 'register' else '¿No tienes cuenta? [color=2f7cf6][b]Créala gratis[/b][/color]')
+                color: D_MUT
+                halign: 'center'
+                font_size: sp(14)
+                on_touch_down: if self.collide_point(*args[1].pos): app.go('login' if root.mode == 'register' else 'register')
+
+# ============================================================== inicio (claro)
+<HomeScreen>:
+    canvas.before:
+        Color:
+            rgba: L_BG
+        Rectangle:
+            pos: self.pos
+            size: self.size
+    BoxLayout:
+        orientation: 'vertical'
+        ScrollView:
+            do_scroll_x: False
+            BoxLayout:
+                orientation: 'vertical'
+                size_hint_y: None
+                height: self.minimum_height
+                padding: dp(18), dp(14), dp(18), dp(36)
+                spacing: dp(16)
+                BoxLayout:
+                    size_hint_y: None
+                    height: dp(44)
+                    spacing: dp(10)
+                    RoundBox:
+                        size_hint: None, None
+                        size: dp(34), dp(34)
+                        pos_hint: {'center_y': .5}
+                        radius: dp(17)
+                        border_width: 0
+                        texture: app.grad
+                        bg_color: 1, 1, 1, 1
+                        Icon:
+                            text: IC['scan']
+                            color: 1, 1, 1, 1
+                            font_size: sp(19)
+                            size: dp(34), dp(34)
+                    Label:
+                        text: '[b]Scan[color=1a6ff0]Gaia[/color][/b]'
+                        markup: True
+                        color: L_TXT
+                        font_size: sp(18)
+                        size_hint_x: None
+                        width: self.texture_size[0]
+                    Widget:
+                    Avatar:
+                        size: dp(36), dp(36)
+                        pos_hint: {'center_y': .5}
+                        on_release: app.go_tab('profile')
+                Field:
+                    id: search
+                    icon: IC['search']
+                    hint_text: 'Buscar por nombre o texto...'
+                    radius: dp(27)
+                    on_text: root.refresh()
+                HeroCard:
+                    size_hint_y: None
+                    height: dp(108)
+                    on_release: app.start_scan()
+                GridLayout:
+                    cols: 4
+                    spacing: dp(10)
+                    size_hint_y: None
+                    height: dp(96)
+                    QuickAction:
+                        icon: IC['add_photo']
+                        text: 'Importar imágenes'
+                        on_release: app.import_images()
+                    QuickAction:
+                        icon: IC['upload_file']
+                        text: 'Importar PDF'
+                        on_release: app.import_pdf()
+                    QuickAction:
+                        icon: IC['subject']
+                        text: 'Texto (OCR)'
+                        on_release: app.tool_ocr()
+                    QuickAction:
+                        icon: IC['build']
+                        text: 'Herramientas'
+                        on_release: app.go_tab('tools')
+                SectionHeader:
+                    title: 'Carpetas'
+                    action: 'Ver todo'
+                    opacity: 0 if root.searching else 1
+                    height: 0 if root.searching else dp(34)
+                    on_link: app.go_tab('docs')
+                ScrollView:
+                    size_hint_y: None
+                    height: 0 if root.searching else (dp(98) if root.has_folders else dp(20))
+                    opacity: 0 if root.searching else 1
+                    do_scroll_y: False
+                    bar_width: 0
+                    BoxLayout:
+                        id: folders
+                        size_hint_x: None
+                        width: self.minimum_width
+                        spacing: dp(10)
+                        padding: 0, 0, 0, dp(4)
+                SectionHeader:
+                    title: 'Resultados' if root.searching else 'Recientes'
+                    action: '' if root.searching else 'Ver más'
+                    on_link: app.go_tab('docs')
+                BoxLayout:
+                    id: recents
+                    orientation: 'vertical'
+                    size_hint_y: None
+                    height: self.minimum_height
+                    spacing: dp(10)
+        BottomNav:
+            active: 'home'
+
+<HeroCard>:
+    padding: dp(20), dp(16)
+    canvas.before:
+        Color:
+            rgba: 0.1, 0.45, 1, 0.12
+        RoundedRectangle:
+            pos: self.x + dp(4), self.y - dp(8)
+            size: self.width - dp(8), self.height
+            radius: [dp(24)]
+        Color:
+            rgba: (1, 1, 1, 1) if self.state == 'normal' else (.85, .85, .85, 1)
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [dp(24)]
+            texture: app.grad
+    BoxLayout:
+        orientation: 'vertical'
+        Widget:
+        Label:
+            text: 'Hola, %s' % (app.user['name'] if app.user else '')
+            color: 1, 1, 1, .9
+            font_size: sp(13)
+            text_size: self.width, None
+            size_hint_y: None
+            height: self.texture_size[1]
+            shorten: True
+        Label:
+            text: '[b]Escanear documento[/b]'
+            markup: True
+            color: 1, 1, 1, 1
+            font_size: sp(21)
+            text_size: self.width, None
+            size_hint_y: None
+            height: self.texture_size[1] + dp(4)
+        Label:
+            text: 'Detección de bordes, filtros y PDF'
+            color: 1, 1, 1, .9
+            font_size: sp(12)
+            text_size: self.width, None
+            size_hint_y: None
+            height: self.texture_size[1]
+        Widget:
+    AnchorLayout:
+        size_hint_x: None
+        width: dp(60)
+        Icon:
+            text: IC['scan']
+            color: 1, 1, 1, 1
+            font_size: sp(28)
+            size: dp(54), dp(54)
+            canvas.before:
+                Color:
+                    rgba: 1, 1, 1, .18
+                RoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [dp(16)]
+
+<Avatar>:
+    size_hint: None, None
+    canvas.before:
+        Color:
+            rgba: BLUE_SOFT
+        Ellipse:
+            pos: self.pos
+            size: self.size
+    Label:
+        center: root.center
+        size: root.size
+        text: '[b]%s[/b]' % ((app.user['name'][:1].upper()) if app.user else '')
+        markup: True
+        color: L_TXT
+        font_size: root.height * 0.42
+
+<EmptyState>:
+    orientation: 'vertical'
+    size_hint_y: None
+    height: dp(150)
+    padding: dp(16)
+    spacing: dp(6)
+    radius: dp(18)
+    Widget:
+    Icon:
+        text: root.icon
+        font_size: sp(36)
+        size_hint: 1, None
+        height: dp(42)
+    Label:
+        text: '[b]%s[/b]' % root.title
+        markup: True
+        color: L_TXT
+        font_size: sp(14)
+        size_hint_y: None
+        height: dp(22)
+    Label:
+        text: root.desc
+        color: L_MUT
+        font_size: sp(12)
+        halign: 'center'
+        text_size: self.width, None
+        size_hint_y: None
+        height: self.texture_size[1]
+    Widget:
+
+# ============================================================== documentos
+<DocsScreen>:
+    canvas.before:
+        Color:
+            rgba: L_BG
+        Rectangle:
+            pos: self.pos
+            size: self.size
+    BoxLayout:
+        orientation: 'vertical'
+        BoxLayout:
+            orientation: 'vertical'
+            size_hint_y: None
+            height: self.minimum_height
+            padding: dp(18), dp(14), dp(18), dp(6)
+            spacing: dp(12)
+            BoxLayout:
+                size_hint_y: None
+                height: dp(44)
+                Lbl:
+                    text: '[b]Documentos[/b]'
+                    font_size: sp(24)
+                    size_hint_y: 1
+                    text_size: self.size
+                IconButton:
+                    text: IC['new_folder']
+                    color: BLUE
+                    on_release: app.new_folder()
+            Field:
+                id: search
+                icon: IC['search']
+                hint_text: 'Buscar por nombre o texto...'
+                radius: dp(27)
+                on_text: root.refresh()
+            ScrollView:
+                size_hint_y: None
+                height: dp(40)
+                do_scroll_y: False
+                bar_width: 0
+                BoxLayout:
+                    id: chips
+                    size_hint_x: None
+                    width: self.minimum_width
+                    spacing: dp(8)
+            BoxLayout:
+                size_hint_y: None
+                height: dp(36) if root.folder_id else 0
+                opacity: 1 if root.folder_id else 0
+                disabled: not root.folder_id
+                spacing: dp(8)
+                Lbl:
+                    text: root.folder_info
+                    color: L_MUT
+                    font_size: sp(12)
+                    size_hint_y: 1
+                    text_size: self.size
+                Chip:
+                    text: 'Renombrar'
+                    fg: L_TXT
+                    bg: L_CARD
+                    line: L_LINE
+                    on_release: self.state = 'normal'; app.rename_folder(root.folder_id)
+                Chip:
+                    text: 'Eliminar'
+                    fg: RED
+                    bg: L_CARD
+                    line: L_LINE
+                    on_release: self.state = 'normal'; app.delete_folder(root.folder_id)
+        ScrollView:
+            do_scroll_x: False
+            BoxLayout:
+                id: list
+                orientation: 'vertical'
+                size_hint_y: None
+                height: self.minimum_height
+                padding: dp(18), dp(4), dp(18), dp(36)
+                spacing: dp(10)
+        BottomNav:
+            active: 'docs'
+
+# ============================================================== herramientas
+<ToolsScreen>:
+    canvas.before:
+        Color:
+            rgba: L_BG
+        Rectangle:
+            pos: self.pos
+            size: self.size
+    BoxLayout:
+        orientation: 'vertical'
+        ScrollView:
+            do_scroll_x: False
+            BoxLayout:
+                orientation: 'vertical'
+                size_hint_y: None
+                height: self.minimum_height
+                padding: dp(18), dp(14), dp(18), dp(36)
+                spacing: dp(12)
+                Lbl:
+                    text: '[b]Herramientas[/b]'
+                    font_size: sp(24)
+                Lbl:
+                    text: 'Todo se procesa en tu teléfono, sin subir nada a internet.'
+                    color: L_MUT
+                    font_size: sp(13)
+                Widget:
+                    size_hint_y: None
+                    height: dp(4)
+                ToolRow:
+                    icon: IC['camera']
+                    title: 'Escanear con cámara'
+                    desc: 'Detección automática de bordes'
+                    on_release: app.start_scan()
+                ToolRow:
+                    icon: IC['add_photo']
+                    title: 'Imágenes a PDF'
+                    desc: 'Convierte fotos de la galería en un PDF'
+                    on_release: app.import_images()
+                ToolRow:
+                    icon: IC['upload_file']
+                    title: 'Importar PDF'
+                    desc: 'Agrega un PDF existente a tu biblioteca'
+                    on_release: app.import_pdf()
+                ToolRow:
+                    icon: IC['subject']
+                    title: 'Extraer texto (OCR)'
+                    desc: 'Copia el texto de una foto o documento'
+                    on_release: app.tool_ocr()
+                ToolRow:
+                    icon: IC['merge']
+                    title: 'Unir documentos'
+                    desc: 'Combina varios documentos en un PDF'
+                    on_release: app.tool_merge()
+                ToolRow:
+                    icon: IC['compress']
+                    title: 'Comprimir documento'
+                    desc: 'Reduce el tamaño del PDF para enviarlo'
+                    on_release: app.tool_compress()
+        BottomNav:
+            active: 'tools'
+
+# ============================================================== perfil
+<ProfileScreen>:
+    canvas.before:
+        Color:
+            rgba: L_BG
+        Rectangle:
+            pos: self.pos
+            size: self.size
+    BoxLayout:
+        orientation: 'vertical'
+        ScrollView:
+            do_scroll_x: False
+            BoxLayout:
+                orientation: 'vertical'
+                size_hint_y: None
+                height: self.minimum_height
+                padding: dp(18), dp(14), dp(18), dp(36)
+                spacing: dp(12)
+                Lbl:
+                    text: '[b]Perfil[/b]'
+                    font_size: sp(24)
+                AnchorLayout:
+                    size_hint_y: None
+                    height: dp(96)
+                    Avatar:
+                        size: dp(84), dp(84)
+                Lbl:
+                    text: '[b]%s[/b]' % (app.user['name'] if app.user else '')
+                    halign: 'center'
+                    font_size: sp(19)
+                Lbl:
+                    text: app.user['email'] if app.user else ''
+                    halign: 'center'
+                    color: L_MUT
+                RoundBox:
+                    size_hint_y: None
+                    height: dp(84)
+                    padding: dp(8)
+                    radius: dp(18)
+                    StatBox:
+                        value: root.n_docs
+                        label: 'Documentos'
+                    StatBox:
+                        value: root.n_folders
+                        label: 'Carpetas'
+                    StatBox:
+                        value: root.usage
+                        label: 'Espacio usado'
+                RoundBox:
+                    size_hint_y: None
+                    height: dp(64)
+                    padding: dp(14)
+                    spacing: dp(12)
+                    radius: dp(18)
+                    bg_color: BLUE_SOFT
+                    border_width: 0
+                    Icon:
+                        text: IC['shield']
+                        pos_hint: {'center_y': .5}
+                    Lbl:
+                        text: 'Tus documentos se guardan solo en este teléfono, en el almacenamiento privado de la app, y cada cuenta ve únicamente los suyos.'
+                        font_size: sp(12)
+                        color: L_TXT
+                        pos_hint: {'center_y': .5}
+                ToolRow:
+                    icon: IC['key']
+                    title: 'Cambiar contraseña'
+                    desc: 'Protege el acceso a tu cuenta'
+                    on_release: app.change_password()
+                ToolRow:
+                    icon: IC['logout']
+                    title: 'Cerrar sesión'
+                    desc: 'Tus documentos seguirán guardados'
+                    on_release: app.logout()
+                ToolRow:
+                    icon: IC['delete']
+                    title: 'Eliminar cuenta'
+                    desc: 'Borra la cuenta y todos sus documentos'
+                    on_release: app.delete_account()
+        BottomNav:
+            active: 'profile'
+
+<StatBox@BoxLayout>:
+    orientation: 'vertical'
+    value: ''
+    label: ''
+    Label:
+        text: '[b]%s[/b]' % root.value
+        markup: True
+        color: L_TXT
+        font_size: sp(18)
+    Label:
+        text: root.label
+        color: L_MUT
+        font_size: sp(11)
+
+# ============================================================== cámara (oscuro)
+<CameraScreen>:
+    canvas.before:
+        Color:
+            rgba: 0, 0, 0, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size
+    BoxLayout:
+        orientation: 'vertical'
+        TopBar:
+            IconButton:
+                text: IC['close']
+                color: 1, 1, 1, 1
+                on_release: app.back()
+            Label:
+                text: 'Página %d' % (root.n_pages + 1)
+                color: 1, 1, 1, 1
+                font_size: sp(16)
+                bold: True
+            Chip:
+                id: auto
+                text: 'Auto'
+                state: 'down'
+                fg: 1, 1, 1, 1
+                bg: 1, 1, 1, .12
+                line: 1, 1, 1, .12
+                pos_hint: {'center_y': .5}
+            IconButton:
+                text: IC['hd']
+                color: 1, 1, 1, 1
+                opacity: 1 if IS_ANDROID else 0
+                disabled: not IS_ANDROID
+                on_release: app.capture_hd()
+        RelativeLayout:
+            Image:
+                id: preview
+                fit_mode: 'contain'
+            CamOverlay:
+                id: overlay
+            Label:
+                text: root.hint
+                color: 1, 1, 1, 1
+                font_size: sp(13)
+                size_hint: None, None
+                size: self.texture_size[0] + dp(28), dp(34)
+                pos_hint: {'center_x': .5, 'y': .04}
+                opacity: 1 if root.hint else 0
+                canvas.before:
+                    Color:
+                        rgba: 0, 0, 0, .55
+                    RoundedRectangle:
+                        pos: self.pos
+                        size: self.size
+                        radius: [dp(17)]
+        BoxLayout:
+            size_hint_y: None
+            height: dp(132)
+            padding: dp(22), dp(18)
+            BoxLayout:
+                orientation: 'vertical'
+                size_hint_x: None
+                width: dp(72)
+                IconButton:
+                    text: IC['gallery']
+                    color: 1, 1, 1, 1
+                    bg_color: 1, 1, 1, .12
+                    size: dp(52), dp(52)
+                    pos_hint: {'center_x': .5}
+                    on_release: app.import_images(keep_session=True)
+                Label:
+                    text: 'Galería'
+                    font_size: sp(11)
+                    color: 1, 1, 1, .8
+            AnchorLayout:
+                Shutter:
+                    size: dp(78), dp(78)
+                    on_release: root.capture()
+            BoxLayout:
+                orientation: 'vertical'
+                size_hint_x: None
+                width: dp(72)
+                GradButton:
+                    text: ('[font=%s]%s[/font] %d' % (IF, IC['check'], root.n_pages)) if root.n_pages else ('[font=%s]%s[/font]' % (IF, IC['check']))
+                    font_size: sp(18)
+                    fg: 1, 1, 1, 1
+                    glow: False
+                    radius: dp(26)
+                    size_hint: None, None
+                    size: dp(64), dp(52)
+                    pos_hint: {'center_x': .5}
+                    disabled: root.n_pages == 0
+                    on_release: app.go('pages')
+                Label:
+                    text: 'Listo'
+                    font_size: sp(11)
+                    color: 1, 1, 1, .8
+
+<Shutter>:
+    size_hint: None, None
+    canvas:
+        Color:
+            rgba: 1, 1, 1, 1
+        Line:
+            circle: self.center_x, self.center_y, self.width / 2.0 - dp(2)
+            width: dp(3)
+        Color:
+            rgba: (1, 1, 1, 1) if self.state == 'normal' else (.7, .7, .7, 1)
+        Ellipse:
+            pos: self.x + dp(9), self.y + dp(9)
+            size: self.width - dp(18), self.height - dp(18)
+
+# ============================================================== recorte
+<CropScreen>:
+    canvas.before:
+        Color:
+            rgba: hexc('#05070B')
+        Rectangle:
+            pos: self.pos
+            size: self.size
+    BoxLayout:
+        orientation: 'vertical'
+        TopBar:
+            IconButton:
+                text: IC['back']
+                color: 1, 1, 1, 1
+                on_release: app.back()
+            Label:
+                text: 'Ajusta los bordes'
+                color: 1, 1, 1, 1
+                bold: True
+                font_size: sp(16)
+            Widget:
+                size_hint_x: None
+                width: dp(44)
+        CropWidget:
+            id: crop
+        BoxLayout:
+            size_hint_y: None
+            height: dp(150)
+            orientation: 'vertical'
+            padding: dp(18), dp(6), dp(18), dp(18)
+            spacing: dp(10)
+            BoxLayout:
+                BarAction:
+                    icon: IC['rotate']
+                    text: 'Girar'
+                    tint: 1, 1, 1, 1
+                    label_color: 1, 1, 1, .85
+                    on_release: root.rotate()
+                BarAction:
+                    icon: IC['auto']
+                    text: 'Detectar'
+                    tint: 1, 1, 1, 1
+                    label_color: 1, 1, 1, .85
+                    on_release: root.auto()
+                BarAction:
+                    icon: IC['crop_free']
+                    text: 'Hoja completa'
+                    tint: 1, 1, 1, 1
+                    label_color: 1, 1, 1, .85
+                    on_release: root.full()
+            GradButton:
+                text: 'Siguiente'
+                fg: 1, 1, 1, 1
+                glow: False
+                disabled: not root.valid
+                on_release: root.confirm()
+
+# ============================================================== mejora
+<EnhanceScreen>:
+    canvas.before:
+        Color:
+            rgba: hexc('#05070B')
+        Rectangle:
+            pos: self.pos
+            size: self.size
+    BoxLayout:
+        orientation: 'vertical'
+        TopBar:
+            IconButton:
+                text: IC['back']
+                color: 1, 1, 1, 1
+                on_release: app.back()
+            Label:
+                text: 'Mejorar página'
+                color: 1, 1, 1, 1
+                bold: True
+                font_size: sp(16)
+            IconButton:
+                text: IC['rotate']
+                color: 1, 1, 1, 1
+                on_release: root.rotate()
+        RelativeLayout:
+            Image:
+                id: img
+                fit_mode: 'contain'
+                pos_hint: {'x': .04, 'y': .03}
+                size_hint: .92, .94
+            Label:
+                text: 'Procesando…'
+                color: 1, 1, 1, 1
+                opacity: 1 if root.working else 0
+                size_hint: None, None
+                size: dp(130), dp(36)
+                pos_hint: {'center_x': .5, 'center_y': .5}
+                canvas.before:
+                    Color:
+                        rgba: 0, 0, 0, .6
+                    RoundedRectangle:
+                        pos: self.pos
+                        size: self.size
+                        radius: [dp(18)]
+        ScrollView:
+            size_hint_y: None
+            height: dp(52)
+            do_scroll_y: False
+            bar_width: 0
+            BoxLayout:
+                id: chips
+                size_hint_x: None
+                width: self.minimum_width
+                padding: dp(16), dp(8)
+                spacing: dp(8)
+        BoxLayout:
+            size_hint_y: None
+            height: dp(84)
+            padding: dp(18), dp(10), dp(18), dp(18)
+            GradButton:
+                text: 'Guardar cambios' if app.edit_index is not None else 'Añadir página'
+                fg: 1, 1, 1, 1
+                glow: False
+                disabled: root.working
+                on_release: root.confirm()
+
+# ============================================================== revisar páginas
+<PagesScreen>:
+    canvas.before:
+        Color:
+            rgba: L_BG
+        Rectangle:
+            pos: self.pos
+            size: self.size
+    BoxLayout:
+        orientation: 'vertical'
+        TopBar:
+            IconButton:
+                text: IC['back']
+                color: L_TXT
+                on_release: app.back()
+            Lbl:
+                text: '[b]%s[/b]' % ('Añadir a documento' if app.append_to else 'Revisar páginas')
+                font_size: sp(18)
+                size_hint_y: 1
+                text_size: self.size
+        ScrollView:
+            do_scroll_x: False
+            BoxLayout:
+                orientation: 'vertical'
+                size_hint_y: None
+                height: self.minimum_height
+                padding: dp(18), dp(4), dp(18), dp(20)
+                spacing: dp(12)
+                Field:
+                    id: title
+                    icon: IC['edit']
+                    hint_text: 'Nombre del documento'
+                    opacity: 0 if app.append_to else 1
+                    disabled: bool(app.append_to)
+                    height: 0 if app.append_to else dp(54)
+                BoxLayout:
+                    size_hint_y: None
+                    height: dp(40)
+                    spacing: dp(8)
+                    Chip:
+                        id: ocr
+                        text: ('[font=%s]%s[/font] Reconocer texto (OCR)' % (IF, IC['check'])) if self.state == 'down' else 'Reconocer texto (OCR)'
+                        state: 'down'
+                        fg: L_TXT
+                        bg: L_CARD
+                        line: L_LINE
+                    Chip:
+                        text: 'Carpeta: %s' % root.folder_name
+                        fg: L_TXT
+                        bg: L_CARD
+                        line: L_LINE
+                        opacity: 0 if app.append_to else 1
+                        disabled: bool(app.append_to)
+                        on_release: self.state = 'normal'; root.choose_folder()
+                    Widget:
+                GridLayout:
+                    id: grid
+                    cols: 2
+                    spacing: dp(12)
+                    size_hint_y: None
+                    height: self.minimum_height
+        BoxLayout:
+            size_hint_y: None
+            height: dp(88)
+            padding: dp(18), dp(12), dp(18), dp(20)
+            spacing: dp(12)
+            OutlineBtn:
+                text: '[font=%s]%s[/font]  Página' % (IF, IC['add'])
+                fg: BLUE
+                line: L_LINE
+                bg: L_CARD
+                size_hint_x: .42
+                on_release: app.go('camera')
+            GradButton:
+                text: '[font=%s]%s[/font]  Guardar PDF' % (IF, IC['save'])
+                fg: 1, 1, 1, 1
+                disabled: not app.pages
+                on_release: app.save_document()
+
+# ============================================================== ver documento
+<DocScreen>:
+    canvas.before:
+        Color:
+            rgba: L_BG
+        Rectangle:
+            pos: self.pos
+            size: self.size
+    BoxLayout:
+        orientation: 'vertical'
+        TopBar:
+            IconButton:
+                text: IC['back']
+                color: L_TXT
+                on_release: app.back()
+            Lbl:
+                text: '[b]%s[/b]' % root.title
+                font_size: sp(17)
+                shorten: True
+                size_hint_y: 1
+                text_size: self.size
+            IconButton:
+                text: IC['more']
+                color: L_TXT
+                on_release: app.doc_options(root.doc_id)
+        RelativeLayout:
+            Carousel:
+                id: car
+                on_index: root.page_label = '%d / %d' % ((self.index or 0) + 1, len(self.slides))
+            Label:
+                text: root.page_label
+                color: 1, 1, 1, 1
+                font_size: sp(12)
+                size_hint: None, None
+                size: self.texture_size[0] + dp(22), dp(28)
+                pos_hint: {'center_x': .5, 'y': .02}
+                canvas.before:
+                    Color:
+                        rgba: 0.06, 0.09, 0.16, .7
+                    RoundedRectangle:
+                        pos: self.pos
+                        size: self.size
+                        radius: [dp(14)]
+        Lbl:
+            text: root.info
+            color: L_MUT
+            font_size: sp(12)
+            halign: 'center'
+            padding: 0, dp(6)
+        BoxLayout:
+            size_hint_y: None
+            height: dp(76)
+            padding: dp(8), dp(4), dp(8), dp(12)
+            canvas.before:
+                Color:
+                    rgba: L_LINE
+                Rectangle:
+                    pos: self.x, self.top - 1
+                    size: self.width, 1
+                Color:
+                    rgba: L_CARD
+                Rectangle:
+                    pos: self.pos
+                    size: self.width, self.height - 1
+            BarAction:
+                icon: IC['share']
+                text: 'Compartir'
+                on_release: app.share_doc(root.doc_id)
+            BarAction:
+                icon: IC['download']
+                text: 'Descargar'
+                on_release: app.download_doc(root.doc_id)
+            BarAction:
+                icon: IC['subject']
+                text: 'Texto'
+                on_release: app.open_text(root.doc_id)
+            BarAction:
+                icon: IC['add']
+                text: 'Añadir'
+                on_release: app.append_pages(root.doc_id)
+            BarAction:
+                icon: IC['edit']
+                text: 'Renombrar'
+                on_release: app.rename_doc(root.doc_id)
+
+# ============================================================== texto
+<TextScreen>:
+    canvas.before:
+        Color:
+            rgba: L_BG
+        Rectangle:
+            pos: self.pos
+            size: self.size
+    BoxLayout:
+        orientation: 'vertical'
+        TopBar:
+            IconButton:
+                text: IC['back']
+                color: L_TXT
+                on_release: app.back()
+            Lbl:
+                text: '[b]Texto reconocido[/b]'
+                font_size: sp(18)
+                size_hint_y: 1
+                text_size: self.size
+            IconButton:
+                text: IC['auto']
+                color: BLUE
+                on_release: root.run_ocr()
+                opacity: 1 if root.doc_id else 0
+                disabled: not root.doc_id
+        BoxLayout:
+            padding: dp(18), dp(4), dp(18), dp(8)
+            RoundBox:
+                padding: dp(4)
+                radius: dp(16)
+                TextInput:
+                    id: txt
+                    hint_text: root.empty_hint
+                    background_normal: ''
+                    background_active: ''
+                    background_color: 0, 0, 0, 0
+                    foreground_color: L_TXT
+                    hint_text_color: L_MUT
+                    cursor_color: BLUE
+                    font_size: sp(14)
+                    padding: dp(12), dp(12)
+        BoxLayout:
+            size_hint_y: None
+            height: dp(88)
+            padding: dp(18), dp(12), dp(18), dp(20)
+            spacing: dp(10)
+            OutlineBtn:
+                text: '[font=%s]%s[/font] Copiar' % (IF, IC['copy'])
+                fg: BLUE
+                line: L_LINE
+                bg: L_CARD
+                on_release: root.copy()
+            OutlineBtn:
+                text: '[font=%s]%s[/font] Compartir' % (IF, IC['share'])
+                fg: BLUE
+                line: L_LINE
+                bg: L_CARD
+                on_release: root.share()
+            GradButton:
+                text: 'Guardar'
+                fg: 1, 1, 1, 1
+                glow: False
+                opacity: 1 if root.doc_id else 0
+                disabled: not root.doc_id
+                size_hint_x: 1 if root.doc_id else 0.001
+                on_release: root.save()
+
+# ============================================================== diálogos
+<Dialog>:
+    size_hint: .9, None
+    height: box.minimum_height
+    background: ''
+    background_color: 0, 0, 0, 0
+    overlay_color: 0.02, 0.04, 0.09, .55
+    RoundBox:
+        id: box
+        orientation: 'vertical'
+        size_hint_y: None
+        height: self.minimum_height
+        padding: dp(20)
+        spacing: dp(14)
+        radius: dp(22)
+        border_width: 0
+        Lbl:
+            text: '[b]%s[/b]' % root.title
+            font_size: sp(18)
+        Lbl:
+            text: root.message
+            color: L_MUT
+            opacity: 1 if root.message else 0
+            height: self.texture_size[1] if root.message else 0
+        BoxLayout:
+            id: content
+            orientation: 'vertical'
+            size_hint_y: None
+            height: self.minimum_height
+            spacing: dp(10)
+        BoxLayout:
+            id: buttons
+            size_hint_y: None
+            height: dp(50)
+            spacing: dp(10)
+
+<SheetItem>:
+    size_hint_y: None
+    height: dp(54)
+    padding: dp(8), 0
+    spacing: dp(14)
+    canvas.before:
+        Color:
+            rgba: (0.92, 0.95, 1, 1) if self.state == 'down' else (0, 0, 0, 0)
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [dp(12)]
+    Icon:
+        text: root.icon
+        color: root.tint
+        pos_hint: {'center_y': .5}
+    Label:
+        text: root.text
+        color: root.tint if root.danger else L_TXT
+        font_size: sp(15)
+        text_size: self.size
+        halign: 'left'
+        valign: 'middle'
+
+<SelectRow>:
+    size_hint_y: None
+    height: dp(56)
+    padding: dp(8), 0
+    spacing: dp(12)
+    canvas.before:
+        Color:
+            rgba: BLUE_SOFT if self.state == 'down' else (0, 0, 0, 0)
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [dp(12)]
+    Icon:
+        text: IC['check'] if self.state == 'down' else IC['description']
+        color: BLUE if self.state == 'down' else L_MUT
+        pos_hint: {'center_y': .5}
+    Label:
+        text: root.text
+        color: L_TXT
+        font_size: sp(14)
+        text_size: self.size
+        halign: 'left'
+        valign: 'middle'
+        shorten: True
+
+<Busy>:
+    size_hint: None, None
+    size: dp(220), dp(120)
+    auto_dismiss: False
+    background: ''
+    background_color: 0, 0, 0, 0
+    overlay_color: 0.02, 0.04, 0.09, .45
+    RoundBox:
+        orientation: 'vertical'
+        padding: dp(16)
+        spacing: dp(10)
+        radius: dp(20)
+        border_width: 0
+        LoadingRing:
+            size_hint_y: None
+            height: dp(40)
+        Label:
+            text: root.text
+            color: L_TXT
+            font_size: sp(14)
+            halign: 'center'
+            text_size: self.width, None
+
+<LoadingRing>:
+    canvas:
+        Color:
+            rgba: BLUE_SOFT
+        Line:
+            circle: self.center_x, self.center_y, dp(16)
+            width: dp(3)
+        Color:
+            rgba: BLUE
+        Line:
+            circle: self.center_x, self.center_y, dp(16), self.angle, self.angle + 100
+            width: dp(3)
+            cap: 'round'
+
+<Toast>:
+    size_hint: None, None
+    size: min(self.texture_size[0] + dp(36), Window.width - dp(32)), self.texture_size[1] + dp(22)
+    text_size: (Window.width - dp(68)), None
+    halign: 'center'
+    color: 1, 1, 1, 1
+    font_size: sp(14)
+    canvas.before:
+        Color:
+            rgba: 0.06, 0.09, 0.16, .92
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [dp(14)]
