@@ -16,7 +16,7 @@ android.presplash_color = #070B12
 orientation = portrait
 fullscreen = 0
 
-android.permissions = CAMERA
+android.permissions = CAMERA, READ_MEDIA_IMAGES, READ_EXTERNAL_STORAGE
 android.api = 34
 android.minapi = 29
 android.ndk_api = 29

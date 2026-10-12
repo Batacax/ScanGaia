@@ -1321,7 +1321,20 @@ class ScanGaiaApp(App):
     # ----------------------------------------------------------- importar
     def _pick(self, mime, multiple, callback, exts):
         if pu.IS_ANDROID:
-            pu.pick_files(mime, multiple, mainthread(callback))
+            @mainthread
+            def got(paths):
+                if not paths and pu.last_error:
+                    self.toast(pu.last_error, 4)
+                callback(paths)
+
+            @mainthread
+            def start(_granted):
+                try:
+                    pu.pick_files(mime, multiple, got)
+                except Exception as e:
+                    traceback.print_exc()
+                    self.toast("No se pudo abrir el selector: %s" % e, 4)
+            pu.request_storage(start)
             return
         # Escritorio: selector de archivos propio
         from kivy.uix.filechooser import FileChooserListView

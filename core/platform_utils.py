@@ -54,6 +54,31 @@ def request_camera(callback):
                         lambda perms, grants: callback(bool(grants and all(grants))))
 
 
+def _sdk_int():
+    try:
+        return int(autoclass("android.os.Build$VERSION").SDK_INT)
+    except Exception:
+        return 29
+
+
+def request_storage(callback):
+    """Permiso para leer fotos/archivos (Android 13+: READ_MEDIA_IMAGES)."""
+    if not IS_ANDROID:
+        callback(True)
+        return
+    from android.permissions import request_permissions, check_permission
+    perms = (["android.permission.READ_MEDIA_IMAGES"] if _sdk_int() >= 33
+             else ["android.permission.READ_EXTERNAL_STORAGE"])
+    if all(check_permission(p) for p in perms):
+        callback(True)
+        return
+    # Aunque lo niegue, el selector del sistema sigue funcionando: se continúa igual
+    request_permissions(perms, lambda p, g: callback(bool(g and all(g))))
+
+
+last_error = ""
+
+
 def camera_orientation(index=0):
     """Grados que hay que girar (horario) el cuadro de la cámara para verlo derecho."""
     if not IS_ANDROID:
@@ -70,15 +95,24 @@ def camera_orientation(index=0):
 # --------------------------------------------------------------------------- #
 # Selección de archivos y cámara del sistema (Android)
 # --------------------------------------------------------------------------- #
+def _copy_stream(src, dst):
+    """Copia un InputStream de Java a un OutputStream (API 29+)."""
+    FileUtils = autoclass("android.os.FileUtils")
+    try:
+        FileUtils.copy(src, dst)
+    finally:
+        try:
+            src.close()
+        finally:
+            dst.close()
+
+
 def _copy_uri(uri, dest):
     resolver = _activity().getContentResolver()
     stream = resolver.openInputStream(uri)
-    try:
-        Files = autoclass("java.nio.file.Files")
-        Opt = autoclass("java.nio.file.StandardCopyOption")
-        Files.copy(stream, JFile(dest).toPath(), [Opt.REPLACE_EXISTING])
-    finally:
-        stream.close()
+    if stream is None:
+        raise IOError("No se pudo abrir el archivo seleccionado")
+    _copy_stream(stream, autoclass("java.io.FileOutputStream")(dest))
     return dest
 
 
@@ -94,8 +128,10 @@ def pick_files(mime, multiple, callback):
     def on_result(request_code, result_code, data):
         if request_code != _REQ_PICK:
             return
+        global last_error
         activity.unbind(on_activity_result=on_result)
         paths = []
+        last_error = ""
         try:
             if result_code == -1 and data is not None:
                 uris = []
@@ -108,6 +144,10 @@ def pick_files(mime, multiple, callback):
                 stamp = int(time.time() * 1000)
                 for i, u in enumerate(uris):
                     paths.append(_copy_uri(u, os.path.join(cache_dir(), "in_%d_%d%s" % (stamp, i, ext))))
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            last_error = "No se pudo leer el archivo: %s" % e
         finally:
             callback(paths)
 
@@ -166,11 +206,7 @@ def _insert_download(path, name, mime):
     Downloads = autoclass("android.provider.MediaStore$Downloads")
     uri = resolver.insert(Downloads.EXTERNAL_CONTENT_URI, values)
     out = resolver.openOutputStream(uri)
-    try:
-        Files = autoclass("java.nio.file.Files")
-        Files.copy(JFile(path).toPath(), out)
-    finally:
-        out.close()
+    _copy_stream(autoclass("java.io.FileInputStream")(path), out)
     return uri
 
 
