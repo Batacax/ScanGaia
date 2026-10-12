@@ -28,7 +28,6 @@ def preload():
         "InputImage": "com.google.mlkit.vision.common.InputImage",
         "TextRecognition": "com.google.mlkit.vision.text.TextRecognition",
         "Options": "com.google.mlkit.vision.text.latin.TextRecognizerOptions",
-        "Tasks": "com.google.android.gms.tasks.Tasks",
     }
     for key, name in names.items():
         try:
@@ -49,7 +48,7 @@ def _detect_backend():
     if IS_ANDROID:
         if not _J:
             preload()
-        _backend = "mlkit" if "recognizer" in _J and "Tasks" in _J else ""
+        _backend = "mlkit" if "recognizer" in _J else ""
     else:
         _backend = ""
         try:
@@ -82,23 +81,67 @@ def recognize(path):
 
 
 # --------------------------------------------------------------------------- #
-def _mlkit(path):
-    bmp = _J["BitmapFactory"].decodeFile(path)
-    if bmp is None:
-        raise IOError("No se pudo abrir la imagen")
-    try:
-        task = _J["recognizer"].process(_J["InputImage"].fromBitmap(bmp, 0))
-        result = getattr(_J["Tasks"], "await")(task)   # 'await' es palabra reservada
-        lines = []
-        blocks = result.getTextBlocks()
-        for i in range(blocks.size()):
-            blines = blocks.get(i).getLines()
-            for j in range(blines.size()):
-                lines.append(blines.get(j).getText())
-            lines.append("")
-        return "\n".join(lines).strip()
-    finally:
-        bmp.recycle()
+def _mlkit(path, timeout=90):
+    """
+    Todas las llamadas a ML Kit se hacen en el hilo principal (en Android, las
+    clases de la app no se pueden cargar desde otros hilos). Este hilo solo
+    espera el resultado, así que la interfaz no se congela.
+    """
+    import threading
+    from kivy.clock import Clock
+
+    if threading.current_thread() is threading.main_thread():
+        raise RuntimeError("recognize() debe llamarse desde un hilo secundario")
+    box = {}
+    done = threading.Event()
+
+    def finish(err=None, text=None):
+        bmp = box.pop("bmp", None)
+        if bmp is not None:
+            try:
+                bmp.recycle()
+            except Exception:
+                pass
+        box["err"], box["text"] = err, text
+        done.set()
+
+    def start(dt):
+        try:
+            bmp = _J["BitmapFactory"].decodeFile(path)
+            if bmp is None:
+                raise IOError("No se pudo abrir la imagen")
+            box["bmp"] = bmp
+            box["task"] = _J["recognizer"].process(_J["InputImage"].fromBitmap(bmp, 0))
+            Clock.schedule_once(poll, 0.05)
+        except Exception as e:
+            finish(err=e)
+
+    def poll(dt):
+        try:
+            task = box["task"]
+            if not task.isComplete():
+                Clock.schedule_once(poll, 0.08)
+                return
+            if not task.isSuccessful():
+                raise RuntimeError("ML Kit: %s" % task.getException())
+            result = task.getResult()
+            lines = []
+            blocks = result.getTextBlocks()
+            for i in range(blocks.size()):
+                blines = blocks.get(i).getLines()
+                for j in range(blines.size()):
+                    lines.append(blines.get(j).getText())
+                lines.append("")
+            finish(text="\n".join(lines).strip())
+        except Exception as e:
+            finish(err=e)
+
+    Clock.schedule_once(start, 0)
+    if not done.wait(timeout):
+        raise RuntimeError("El reconocimiento de texto tardó demasiado")
+    if box["err"] is not None:
+        raise box["err"]
+    return box["text"] or ""
 
 
 _easy_reader = None
