@@ -271,6 +271,21 @@ def open_file(path):
 # --------------------------------------------------------------------------- #
 # Importar PDF (rasterizar páginas a JPEG)
 # --------------------------------------------------------------------------- #
+def _png_on_white_to_jpeg(src, dst):
+    import cv2
+    import numpy as np
+    img = cv2.imdecode(np.fromfile(src, np.uint8), cv2.IMREAD_UNCHANGED)
+    if img is None:
+        raise IOError("No se pudo convertir la página del PDF")
+    if img.ndim == 3 and img.shape[2] == 4:
+        a = img[:, :, 3:4].astype(np.float32) / 255.0
+        img = (img[:, :, :3].astype(np.float32) * a + 255.0 * (1 - a)).astype(np.uint8)
+    elif img.ndim == 2:
+        img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+    ok, buf = cv2.imencode(".jpg", img, [cv2.IMWRITE_JPEG_QUALITY, 92])
+    buf.tofile(dst)
+
+
 def render_pdf(pdf_path, out_dir, width_px=1700):
     """Convierte cada página del PDF en JPEG. Devuelve la lista de rutas."""
     os.makedirs(out_dir, exist_ok=True)
@@ -288,16 +303,20 @@ def render_pdf(pdf_path, out_dir, width_px=1700):
                 w = int(width_px)
                 h = max(1, int(w * page.getHeight() / float(max(1, page.getWidth()))))
                 bmp = Bitmap.createBitmap(w, h, BitmapConfig.ARGB_8888)
-                bmp.eraseColor(AColor.WHITE)
                 page.render(bmp, None, None, PdfPage.RENDER_MODE_FOR_DISPLAY)
                 page.close()
-                p = os.path.join(out_dir, "pdf_%03d.jpg" % (i + 1))
-                fos = FileOutputStream(p)
+                # PNG con transparencia; el fondo blanco se aplica con OpenCV
+                # (evita eraseColor/drawColor, que tienen sobrecargas int/long ambiguas)
+                tmp_png = os.path.join(out_dir, "pdf_%03d.png" % (i + 1))
+                fos = FileOutputStream(tmp_png)
                 try:
-                    bmp.compress(CompressFormat.JPEG, 92, fos)
+                    bmp.compress(CompressFormat.PNG, 100, fos)
                 finally:
                     fos.close()
                     bmp.recycle()
+                p = os.path.join(out_dir, "pdf_%03d.jpg" % (i + 1))
+                _png_on_white_to_jpeg(tmp_png, p)
+                os.remove(tmp_png)
                 paths.append(p)
         finally:
             renderer.close()
