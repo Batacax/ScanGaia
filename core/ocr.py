@@ -2,7 +2,7 @@
 Reconocimiento de texto (OCR) en español e inglés.
 
 - Android: Google ML Kit Text Recognition (en el dispositivo, sin internet).
-- Escritorio: Tesseract (pytesseract) si está instalado.
+- Escritorio: EasyOCR si está instalado; si no, Tesseract (pytesseract).
 """
 import os
 
@@ -14,6 +14,32 @@ class OCRUnavailable(Exception):
 
 
 _backend = None
+_J = {}   # clases Java cargadas en el hilo principal
+
+
+def preload():
+    """En Android, las clases de librerías de la app (ML Kit, Play Services) solo
+    se pueden cargar desde el hilo principal: se cargan aquí al iniciar."""
+    if not IS_ANDROID:
+        return
+    from jnius import autoclass
+    names = {
+        "BitmapFactory": "android.graphics.BitmapFactory",
+        "InputImage": "com.google.mlkit.vision.common.InputImage",
+        "TextRecognition": "com.google.mlkit.vision.text.TextRecognition",
+        "Options": "com.google.mlkit.vision.text.latin.TextRecognizerOptions",
+        "Tasks": "com.google.android.gms.tasks.Tasks",
+    }
+    for key, name in names.items():
+        try:
+            _J[key] = autoclass(name)
+        except Exception as e:
+            print("OCR preload: no se pudo cargar", name, e)
+    try:
+        # El reconocedor también se crea en el hilo principal y se reutiliza
+        _J["recognizer"] = _J["TextRecognition"].getClient(_J["Options"].DEFAULT_OPTIONS)
+    except Exception as e:
+        print("OCR preload: no se pudo crear el reconocedor", e)
 
 
 def _detect_backend():
@@ -21,19 +47,21 @@ def _detect_backend():
     if _backend is not None:
         return _backend
     if IS_ANDROID:
-        try:
-            from jnius import autoclass
-            autoclass("com.google.mlkit.vision.text.TextRecognition")
-            _backend = "mlkit"
-        except Exception:
-            _backend = ""
+        if not _J:
+            preload()
+        _backend = "mlkit" if "recognizer" in _J and "Tasks" in _J else ""
     else:
+        _backend = ""
         try:
-            import pytesseract
-            pytesseract.get_tesseract_version()
-            _backend = "tesseract"
+            import easyocr  # noqa: F401  (preferido en PC si está instalado)
+            _backend = "easyocr"
         except Exception:
-            _backend = ""
+            try:
+                import pytesseract
+                pytesseract.get_tesseract_version()
+                _backend = "tesseract"
+            except Exception:
+                pass
     return _backend
 
 
@@ -46,6 +74,8 @@ def recognize(path):
     backend = _detect_backend()
     if backend == "mlkit":
         return _mlkit(path)
+    if backend == "easyocr":
+        return _easyocr(path)
     if backend == "tesseract":
         return _tesseract(path)
     raise OCRUnavailable("OCR no disponible en este dispositivo")
@@ -53,33 +83,35 @@ def recognize(path):
 
 # --------------------------------------------------------------------------- #
 def _mlkit(path):
-    from jnius import autoclass
-    BitmapFactory = autoclass("android.graphics.BitmapFactory")
-    InputImage = autoclass("com.google.mlkit.vision.common.InputImage")
-    TextRecognition = autoclass("com.google.mlkit.vision.text.TextRecognition")
-    Options = autoclass("com.google.mlkit.vision.text.latin.TextRecognizerOptions")
-    Tasks = autoclass("com.google.android.gms.tasks.Tasks")
-
-    bmp = BitmapFactory.decodeFile(path)
+    bmp = _J["BitmapFactory"].decodeFile(path)
     if bmp is None:
         raise IOError("No se pudo abrir la imagen")
-    recognizer = TextRecognition.getClient(Options.DEFAULT_OPTIONS)
     try:
-        task = recognizer.process(InputImage.fromBitmap(bmp, 0))
-        result = getattr(Tasks, "await")(task)   # 'await' es palabra reservada en Python
-        # Reconstruye por bloques/líneas para conservar el orden de lectura
+        task = _J["recognizer"].process(_J["InputImage"].fromBitmap(bmp, 0))
+        result = getattr(_J["Tasks"], "await")(task)   # 'await' es palabra reservada
         lines = []
         blocks = result.getTextBlocks()
         for i in range(blocks.size()):
-            block = blocks.get(i)
-            blines = block.getLines()
+            blines = blocks.get(i).getLines()
             for j in range(blines.size()):
                 lines.append(blines.get(j).getText())
             lines.append("")
         return "\n".join(lines).strip()
     finally:
-        recognizer.close()
         bmp.recycle()
+
+
+_easy_reader = None
+
+
+def _easyocr(path):
+    """EasyOCR (solo PC: requiere PyTorch, que no existe para Android)."""
+    global _easy_reader
+    import easyocr
+    if _easy_reader is None:
+        _easy_reader = easyocr.Reader(["es", "en"], gpu=False)
+    # paragraph=True agrupa en líneas/párrafos en orden de lectura
+    return "\n".join(_easy_reader.readtext(path, detail=0, paragraph=True)).strip()
 
 
 def _tesseract(path):

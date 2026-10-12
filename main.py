@@ -100,6 +100,31 @@ def safe_filename(title):
     return (keep or "documento")[:60]
 
 
+def log_error(text):
+    """Guarda errores en un archivo que se puede ver desde Perfil."""
+    try:
+        app = App.get_running_app()
+        path = os.path.join(app.user_data_dir, "errores.log")
+        old = ""
+        if os.path.exists(path):
+            with open(path, encoding="utf-8", errors="replace") as f:
+                old = f.read()[-40000:]
+        stamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(old + "\n[%s]\n%s\n" % (stamp, text))
+    except Exception:
+        pass
+
+
+def read_error_log():
+    try:
+        path = os.path.join(App.get_running_app().user_data_dir, "errores.log")
+        with open(path, encoding="utf-8", errors="replace") as f:
+            return f.read().strip()
+    except OSError:
+        return ""
+
+
 def run_bg(work, done=None, busy=None, error_msg="Ocurrió un error"):
     """Ejecuta `work` en un hilo y llama `done(resultado)` en el hilo principal."""
     app = App.get_running_app()
@@ -113,15 +138,20 @@ def run_bg(work, done=None, busy=None, error_msg="Ocurrió un error"):
             if done:
                 done(result)
         else:
-            msg = str(result) if isinstance(result, (ValueError, RuntimeError,
-                                                     ocr.OCRUnavailable)) else error_msg
-            app.toast(msg)
+            if isinstance(result, (ValueError, RuntimeError, ocr.OCRUnavailable)):
+                msg = str(result)
+            else:
+                detail = str(result).strip().splitlines()
+                detail = detail[-1][:140] if detail else ""
+                msg = "%s\n%s: %s" % (error_msg, type(result).__name__, detail)
+            app.toast(msg, 5)
 
     def thread():
         try:
             res, ok = work(), True
         except Exception as e:  # noqa
             traceback.print_exc()
+            log_error(traceback.format_exc())
             res, ok = e, False
         finally:
             if pu.IS_ANDROID:
@@ -962,7 +992,7 @@ class TextScreen(Screen):
             text = app.store.join_texts(app.store.texts_of(doc))
         self.ids.txt.text = text
         if ocr.available():
-            self.empty_hint = "No se encontró texto. Pulsa ✦ arriba para reconocerlo."
+            self.empty_hint = "No se encontró texto. Pulsa el botón azul de arriba a la derecha para reconocerlo."
         else:
             self.empty_hint = ("El OCR no está disponible en este equipo. "
                                "En Android funciona sin internet.")
@@ -1023,6 +1053,10 @@ class ScanGaiaApp(App):
         self._busy = None
         self._prev_screen = None
         Builder.load_file(os.path.join(APP_DIR, "ui.kv"))
+        try:
+            ocr.preload()
+        except Exception:
+            log_error(traceback.format_exc())
 
         sm = ScreenManager(transition=SlideTransition(duration=0.22))
         sm.add_widget(WelcomeScreen(name="welcome"))
@@ -1239,6 +1273,11 @@ class ScanGaiaApp(App):
                            buttons=[("Cancelar", None), ("Guardar", ok, True)])
         holder["f"] = f
 
+    def show_error_log(self):
+        text = read_error_log() or "No hay errores registrados."
+        self.sm.get_screen("text").load(None, text)
+        self.go("text")
+
     def delete_account(self):
         def do():
             self.store.delete_user(self.user["id"])
@@ -1324,7 +1363,8 @@ class ScanGaiaApp(App):
             @mainthread
             def got(paths):
                 if not paths and pu.last_error:
-                    self.toast(pu.last_error, 4)
+                    log_error(pu.last_error)
+                    self.toast(pu.last_error, 5)
                 callback(paths)
 
             @mainthread

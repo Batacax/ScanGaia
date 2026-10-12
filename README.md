@@ -54,7 +54,7 @@ Requisitos del teléfono: **Android 10 o superior**.
 ## Probar en la PC
 ```bash
 pip install kivy==2.3.1 opencv-python numpy
-pip install pytesseract pypdfium2   # opcional: OCR e importar PDF en PC
+pip install easyocr pypdfium2       # opcional: OCR (EasyOCR) e importar PDF en PC
 python main.py
 python -m tests.test_core           # pruebas del núcleo
 ```

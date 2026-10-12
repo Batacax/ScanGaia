@@ -1060,6 +1060,11 @@
                     desc: 'Protege el acceso a tu cuenta'
                     on_release: app.change_password()
                 ToolRow:
+                    icon: IC['description']
+                    title: 'Registro de errores'
+                    desc: 'Para copiarlo y enviarlo si algo falla'
+                    on_release: app.show_error_log()
+                ToolRow:
                     icon: IC['logout']
                     title: 'Cerrar sesión'
                     desc: 'Tus documentos seguirán guardados'

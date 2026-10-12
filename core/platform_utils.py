@@ -25,6 +25,19 @@ if IS_ANDROID:
     Environment = autoclass("android.os.Environment")
     JFile = autoclass("java.io.File")
     JString = autoclass("java.lang.String")
+    FileUtils = autoclass("android.os.FileUtils")
+    FileInputStream = autoclass("java.io.FileInputStream")
+    FileOutputStream = autoclass("java.io.FileOutputStream")
+    BuildVersion = autoclass("android.os.Build$VERSION")
+    Downloads = autoclass("android.provider.MediaStore$Downloads")
+    PFD = autoclass("android.os.ParcelFileDescriptor")
+    PdfRenderer = autoclass("android.graphics.pdf.PdfRenderer")
+    PdfPage = autoclass("android.graphics.pdf.PdfRenderer$Page")
+    Bitmap = autoclass("android.graphics.Bitmap")
+    BitmapConfig = autoclass("android.graphics.Bitmap$Config")
+    CompressFormat = autoclass("android.graphics.Bitmap$CompressFormat")
+    Canvas = autoclass("android.graphics.Canvas")
+    AColor = autoclass("android.graphics.Color")
 
 
 def _activity():
@@ -56,7 +69,7 @@ def request_camera(callback):
 
 def _sdk_int():
     try:
-        return int(autoclass("android.os.Build$VERSION").SDK_INT)
+        return int(BuildVersion.SDK_INT)
     except Exception:
         return 29
 
@@ -97,7 +110,6 @@ def camera_orientation(index=0):
 # --------------------------------------------------------------------------- #
 def _copy_stream(src, dst):
     """Copia un InputStream de Java a un OutputStream (API 29+)."""
-    FileUtils = autoclass("android.os.FileUtils")
     try:
         FileUtils.copy(src, dst)
     finally:
@@ -112,7 +124,7 @@ def _copy_uri(uri, dest):
     stream = resolver.openInputStream(uri)
     if stream is None:
         raise IOError("No se pudo abrir el archivo seleccionado")
-    _copy_stream(stream, autoclass("java.io.FileOutputStream")(dest))
+    _copy_stream(stream, FileOutputStream(dest))
     return dest
 
 
@@ -203,10 +215,9 @@ def _insert_download(path, name, mime):
     values.put(MediaColumns.DISPLAY_NAME, JString(name))
     values.put(MediaColumns.MIME_TYPE, JString(mime))
     values.put(MediaColumns.RELATIVE_PATH, JString(Environment.DIRECTORY_DOWNLOADS + "/ScanGaia"))
-    Downloads = autoclass("android.provider.MediaStore$Downloads")
     uri = resolver.insert(Downloads.EXTERNAL_CONTENT_URI, values)
     out = resolver.openOutputStream(uri)
-    _copy_stream(autoclass("java.io.FileInputStream")(path), out)
+    _copy_stream(FileInputStream(path), out)
     return uri
 
 
@@ -265,31 +276,28 @@ def render_pdf(pdf_path, out_dir, width_px=1700):
     os.makedirs(out_dir, exist_ok=True)
     paths = []
     if IS_ANDROID:
-        PFD = autoclass("android.os.ParcelFileDescriptor")
-        PdfRenderer = autoclass("android.graphics.pdf.PdfRenderer")
-        PdfPage = autoclass("android.graphics.pdf.PdfRenderer$Page")
-        Bitmap = autoclass("android.graphics.Bitmap")
-        Config = autoclass("android.graphics.Bitmap$Config")
-        Fmt = autoclass("android.graphics.Bitmap$CompressFormat")
-        Canvas = autoclass("android.graphics.Canvas")
-        Color = autoclass("android.graphics.Color")
-        FOS = autoclass("java.io.FileOutputStream")
         fd = PFD.open(JFile(pdf_path), PFD.MODE_READ_ONLY)
-        renderer = PdfRenderer(fd)
+        try:
+            renderer = PdfRenderer(fd)
+        except Exception:
+            fd.close()
+            raise RuntimeError("El PDF está dañado o protegido con contraseña")
         try:
             for i in range(renderer.getPageCount()):
                 page = renderer.openPage(i)
-                w = width_px
-                h = int(w * page.getHeight() / float(page.getWidth()))
-                bmp = Bitmap.createBitmap(w, h, Config.ARGB_8888)
-                Canvas(bmp).drawColor(Color.WHITE)
+                w = int(width_px)
+                h = max(1, int(w * page.getHeight() / float(max(1, page.getWidth()))))
+                bmp = Bitmap.createBitmap(w, h, BitmapConfig.ARGB_8888)
+                bmp.eraseColor(AColor.WHITE)
                 page.render(bmp, None, None, PdfPage.RENDER_MODE_FOR_DISPLAY)
                 page.close()
                 p = os.path.join(out_dir, "pdf_%03d.jpg" % (i + 1))
-                fos = FOS(p)
-                bmp.compress(Fmt.JPEG, 92, fos)
-                fos.close()
-                bmp.recycle()
+                fos = FileOutputStream(p)
+                try:
+                    bmp.compress(CompressFormat.JPEG, 92, fos)
+                finally:
+                    fos.close()
+                    bmp.recycle()
                 paths.append(p)
         finally:
             renderer.close()
